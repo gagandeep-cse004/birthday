@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎉 Simmi's Birthday Celebration 🎉</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            color: white;
+        }
+
+        h1 {
+            font-size: 4em;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+            animation: bounce 2s infinite;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            font-size: 1.8em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 30px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-balloons {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-confetti {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-cake {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        button:active {
+            transform: translateY(-1px);
+        }
+
+        .info {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.9em;
+            z-index: 10;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .particle {
+            position: fixed;
+            pointer-events: none;
+        }
+
+        .heart {
+            font-size: 2em;
+            animation: float 3s ease-in infinite;
+        }
+
+        @keyframes float {
+            0% {
+                opacity: 1;
+                transform: translateY(0) translateX(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) translateX(var(--tx));
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="container">
+        <h1>🎂 Happy Birthday Simmi! 🎂</h1>
+        <p class="subtitle">✨ Let's Celebrate! ✨</p>
+        
+        <div class="button-group">
+            <button class="btn-balloons" onclick="createBalloons()">🎈 Balloons</button>
+            <button class="btn-confetti" onclick="createConfetti()">🎊 Confetti</button>
+            <button class="btn-cake" onclick="createCake()">🎉 Fireworks</button>
+        </div>
+    </div>
+
+    <div class="info">
+        💡 Click buttons or interact with the scene!
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ==================== THREE.JS SETUP ====================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+        
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFShadowShadowMap;
+
+        // ==================== LIGHTING ====================
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 7);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        const pointLight1 = new THREE.PointLight(0xff6b9d, 0.5, 20);
+        pointLight1.position.set(-5, 5, 5);
+        scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0x4dd0e1, 0.5, 20);
+        pointLight2.position.set(5, 5, 5);
+        scene.add(pointLight2);
+
+        // ==================== BALLOONS ====================
+        const balloons = [];
+        const balloonColors = [0xff6b9d, 0x4dd0e1, 0xffd700, 0xff1493, 0x00ff00];
+
+        function createBalloon(x, y, z, color) {
+            const geometry = new THREE.SphereGeometry(0.3, 32, 32);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: color,
+                metalness: 0.3,
+                roughness: 0.4,
+                emissive: color,
+                emissiveIntensity: 0.2
+            });
+            const balloon = new THREE.Mesh(geometry, material);
+            balloon.position.set(x, y, z);
+            balloon.castShadow = true;
+            balloon.receiveShadow = true;
+
+            // String
+            const stringGeometry = new THREE.BufferGeometry();
+            const stringPositions = new Float32Array([0, 0, 0, x, y - 1, z]);
+            stringGeometry.setAttribute('position', new THREE.BufferAttribute(stringPositions, 3));
+            const stringMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+            const string = new THREE.Line(stringGeometry, stringMaterial);
+            scene.add(string);
+
+            balloon.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.02,
+                0.01 + Math.random() * 0.01,
+                (Math.random() - 0.5) * 0.02
+            );
+            balloon.rotationSpeed = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.02,
+                (Math.random() - 0.5) * 0.02,
+                (Math.random() - 0.5) * 0.02
+            );
+
+            scene.add(balloon);
+            balloons.push(balloon);
+            return balloon;
+        }
+
+        function createBalloons() {
+            for (let i = 0; i < 15; i++) {
+                const color = balloonColors[Math.floor(Math.random() * balloonColors.length)];
+                createBalloon(
+                    (Math.random() - 0.5) * 4,
+                    -3,
+                    (Math.random() - 0.5) * 4,
+                    color
+                );
+            }
+        }
+
+        // ==================== CONFETTI ====================
+        const confettiPieces = [];
+
+        function createConfetti() {
+            for (let i = 0; i < 100; i++) {
+                const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.01);
+                const color = balloonColors[Math.floor(Math.random() * balloonColors.length)];
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: color,
+                    metalness: 0.5,
+                    roughness: 0.5,
+                    emissive: color,
+                    emissiveIntensity: 0.3
+                });
+                const confetti = new THREE.Mesh(geometry, material);
+                confetti.position.set(
+                    (Math.random() - 0.5) * 8,
+                    4,
+                    (Math.random() - 0.5) * 8
+                );
+                confetti.castShadow = true;
+                confetti.receiveShadow = true;
+
+                confetti.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1
+                );
+                confetti.rotationSpeed = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.2,
+                    (Math.random() - 0.5) * 0.2,
+                    (Math.random() - 0.5) * 0.2
+                );
+                confetti.life = 200;
+
+                scene.add(confetti);
+                confettiPieces.push(confetti);
+            }
+
+            // Create particle hearts
+            for (let i = 0; i < 20; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'particle heart';
+                heart.innerHTML = '❤️';
+                heart.style.left = Math.random() * 100 + '%';
+                heart.style.top = '0';
+                heart.style.setProperty('--tx', (Math.random() - 0.5) * 200 + 'px');
+                document.body.appendChild(heart);
+                setTimeout(() => heart.remove(), 3000);
+            }
+        }
+
+        // ==================== CAKE ====================
+        function createCake() {
+            // Cake base
+            const cakeGeometry = new THREE.CylinderGeometry(0.8, 0.8, 0.4, 32);
+            const cakeMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xd4714d,
+                metalness: 0.1,
+                roughness: 0.6
+            });
+            const cake = new THREE.Mesh(cakeGeometry, cakeMaterial);
+            cake.position.y = -1.5;
+            cake.castShadow = true;
+            cake.receiveShadow = true;
+            scene.add(cake);
+
+            // Frosting
+            const frostingGeometry = new THREE.CylinderGeometry(0.85, 0.85, 0.1, 32);
+            const frostingMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xffc0cb,
+                metalness: 0.2,
+                roughness: 0.5,
+                emissive: 0xffc0cb,
+                emissiveIntensity: 0.2
+            });
+            const frosting = new THREE.Mesh(frostingGeometry, frostingMaterial);
+            frosting.position.y = -1.2;
+            frosting.castShadow = true;
+            frosting.receiveShadow = true;
+            scene.add(frosting);
+
+            // Candles
+            for (let i = 0; i < 5; i++) {
+                const candleGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 16);
+                const candleMaterial = new THREE.MeshStandardMaterial({ color: 0xffd700 });
+                const candle = new THREE.Mesh(candleGeometry, candleMaterial);
+                candle.position.set(
+                    (i - 2) * 0.3,
+                    -0.9,
+                    0
+                );
+                candle.castShadow = true;
+                candle.receiveShadow = true;
+                scene.add(candle);
+
+                // Flame
+                const flameGeometry = new THREE.ConeGeometry(0.08, 0.3, 16);
+                const flameMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xff6b00,
+                    emissive: 0xff6b00,
+                    emissiveIntensity: 1
+                });
+                const flame = new THREE.Mesh(flameGeometry, flameMaterial);
+                flame.position.set(
+                    (i - 2) * 0.3,
+                    -0.6,
+                    0
+                );
+                flame.castShadow = true;
+                scene.add(flame);
+            }
+
+            // Fireworks
+            createFireworks();
+            createConfetti();
+        }
+
+        // ==================== FIREWORKS ====================
+        const particles = [];
+
+        function createFireworks() {
+            for (let burst = 0; burst < 5; burst++) {
+                setTimeout(() => {
+                    for (let i = 0; i < 50; i++) {
+                        const geometry = new THREE.SphereGeometry(0.05, 8, 8);
+                        const color = balloonColors[Math.floor(Math.random() * balloonColors.length)];
+                        const material = new THREE.MeshStandardMaterial({ 
+                            color: color,
+                            metalness: 0.8,
+                            roughness: 0.2,
+                            emissive: color,
+                            emissiveIntensity: 0.8
+                        });
+                        const particle = new THREE.Mesh(geometry, material);
+                        particle.position.set(0, 0, 0);
+                        particle.castShadow = true;
+
+                        const angle = (Math.PI * 2 * i) / 50;
+                        const speed = 0.15 + Math.random() * 0.15;
+                        particle.velocity = new THREE.Vector3(
+                            Math.cos(angle) * speed,
+                            Math.sin(angle) * speed + 0.1,
+                            (Math.random() - 0.5) * speed
+                        );
+                        particle.life = 100;
+
+                        scene.add(particle);
+                        particles.push(particle);
+                    }
+                }, burst * 200);
+            }
+        }
+
+        // ==================== ANIMATION ====================
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update balloons
+            balloons.forEach((balloon, index) => {
+                balloon.position.add(balloon.velocity);
+                balloon.rotation.x += balloon.rotationSpeed.x;
+                balloon.rotation.y += balloon.rotationSpeed.y;
+                balloon.rotation.z += balloon.rotationSpeed.z;
+
+                if (balloon.position.y > 6) {
+                    scene.remove(balloon);
+                    balloons.splice(index, 1);
+                }
+            });
+
+            // Update confetti
+            confettiPieces.forEach((confetti, index) => {
+                confetti.position.add(confetti.velocity);
+                confetti.velocity.y -= 0.001; // Gravity
+                confetti.rotation.x += confetti.rotationSpeed.x;
+                confetti.rotation.y += confetti.rotationSpeed.y;
+                confetti.rotation.z += confetti.rotationSpeed.z;
+
+                confetti.life--;
+                confetti.material.opacity = confetti.life / 200;
+
+                if (confetti.life <= 0) {
+                    scene.remove(confetti);
+                    confettiPieces.splice(index, 1);
+                }
+            });
+
+            // Update particles
+            particles.forEach((particle, index) => {
+                particle.position.add(particle.velocity);
+                particle.velocity.y -= 0.002; // Gravity
+                particle.life--;
+                particle.material.emissiveIntensity = particle.life / 100;
+
+                if (particle.life <= 0) {
+                    scene.remove(particle);
+                    particles.splice(index, 1);
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // ==================== EVENT LISTENERS ====================
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Click anywhere to create confetti
+        document.addEventListener('click', (e) => {
+            if (!e.target.tagName === 'BUTTON') {
+                createConfetti();
+            }
+        });
+
+        // Start animation
+        animate();
+
+        // Initial balloons
+        createBalloons();
+    </script>
+</body>
+</html>
